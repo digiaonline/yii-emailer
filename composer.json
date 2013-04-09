@@ -1,0 +1,19 @@
+{
+    "name": "nordsoftware/emailer",
+	"description": "Extension for creating and sending emails for the Yii PHP framework.",
+    "require": {
+		"nordsoftware/yii-utils": "dev-master",
+        "swiftmailer/swiftmailer": "4.3.0"
+    },
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Christoffer Niska",
+            "email": "christoffer.niska@nordsoftware.com"
+        },
+		{
+			"name": "Kenneth Söderlund",
+			"email": "kenneth.soderlund@nordsoftware.com"
+		}
+    ]
+}
