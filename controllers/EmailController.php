@@ -10,7 +10,7 @@
 /**
  * Email controller.
  */
-class EmailController extends EmailBaseController {
+class EmailController extends CController {
 	/**
 	 * @var string the name of the default action.
 	 */
@@ -22,7 +22,6 @@ class EmailController extends EmailBaseController {
 	 */
 	public function actionView($id) {
 		$model = $this->loadModel($id);
-		$this->pageTitle = $model->subject;
 		echo $model->body;
 	}
 
@@ -36,7 +35,7 @@ class EmailController extends EmailBaseController {
 	protected function loadModel($id) {
 		$model = EmailMessage::model()->findByPk($id);
 		if ($model === null) {
-			throw new CHttpException(404, 'Page not found.');
+			throw new CHttpException(404, t('email', 'Page not found.'));
 		}
 		return $model;
 	}

@@ -7,6 +7,13 @@
  * @package vendor.nordsoftware.emailer.models
  */
 
+Yii::import('vendor.nordsoftware.yii-utils.NSActiveRecord');
+
+// Load the Swift Mailer autoloader.
+require_once(__DIR__ . '/../../../swiftmailer/swiftmailer/lib/swift_required.php');
+Yii::registerAutoloader(array('Swift', 'autoload'));
+require_once(__DIR__ . '/../../../swiftmailer/swiftmailer/lib/swift_init.php');
+
 /**
  * This is the model class for table "email_message".
  *
@@ -25,7 +32,7 @@
  * @property string $sentTime
  * @property integer $status
  */
-class EmailMessage extends EmailActiveRecord {
+class EmailMessage extends NSActiveRecord {
 
 	/**
 	 * Returns the static model of the specified AR class.
@@ -55,13 +62,6 @@ class EmailMessage extends EmailActiveRecord {
 			// The following rule is used by search().
 			array('id, from, to, cc, bcc, subject, body, headers, created, status', 'safe', 'on' => 'search'),
 		);
-	}
-
-	/**
-	 * @return array relational rules.
-	 */
-	public function relations() {
-		return array();
 	}
 
 	/**
@@ -119,25 +119,8 @@ class EmailMessage extends EmailActiveRecord {
 	}
 
 	/**
-	 * Converts this model to a string.
-	 * @return string the text.
-	 */
-	public function __toString() {
-		$message = $this->createMessage();
-		$from = implode(', ', array_keys($message->getFrom()));
-		$to = implode(', ', array_keys($message->getTo()));
-		$headers = implode('', $message->getHeaders()->getAll());
-		$body = $message->getBody();
-		return 'From: ' . $from . PHP_EOL
-						. 'To: ' . $to . PHP_EOL
-						. 'Headers: ' . PHP_EOL . $headers
-						. 'Body: ' . PHP_EOL . $body;
-	}
-
-	/**
-	 * Get the Swift_Message instance for this email message model
-	 *
-	 * @return Swift_Message
+	 * Creates a Swift_Message instance for this model.
+	 * @return Swift_Message the message.
 	 */
 	public function createMessage() {
 		/** @var Swift_Message $message */
@@ -156,5 +139,21 @@ class EmailMessage extends EmailActiveRecord {
 			->setBody($body, $contentType, $charset);
 
 		return $message;
+	}
+
+	/**
+	 * Converts this model to a string.
+	 * @return string the text.
+	 */
+	public function __toString() {
+		$message = $this->createMessage();
+		$from = implode(', ', array_keys($message->getFrom()));
+		$to = implode(', ', array_keys($message->getTo()));
+		$headers = implode('', $message->getHeaders()->getAll());
+		$body = $message->getBody();
+		return 'From: ' . $from . PHP_EOL
+			. 'To: ' . $to . PHP_EOL
+			. 'Headers: ' . PHP_EOL . $headers
+			. 'Body: ' . PHP_EOL . $body;
 	}
 }

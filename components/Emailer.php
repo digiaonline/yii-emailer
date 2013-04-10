@@ -7,10 +7,6 @@
  * @package vendor.nordsoftware.emailer.components
  */
 
-require_once(__DIR__ . '/../lib/Swift/swift_required.php');
-Yii::registerAutoloader(array('Swift', 'autoload'));
-require_once(__DIR__ . '/../lib/Swift/swift_init.php');
-
 /**
  * Application component for creating and sending emails.
  */
@@ -43,13 +39,9 @@ class Emailer extends CApplicationComponent {
 	 */
 	public $smtpOptions = array();
 	/**
-	 * @var string Controller instance name
-	 */
-	public $controller = 'CController';
-	/**
 	 * @var string the path alias for where the email views are located.
 	 */
-	public $viewPath = 'application.views.mail';
+	public $viewPath = 'application.views.email';
 	/**
 	 * @var string the path to the default layout file. Setting this to false means that no layout will be used.
 	 */
@@ -59,9 +51,9 @@ class Emailer extends CApplicationComponent {
 	 */
 	public $data = array();
 	/**
-	 * @var mixed a PHP expression for creating the url for the "view email in your browser" -l.
+	 * @var mixed a PHP expression for creating the url for the "view email in your browser".
 	 */
-	public $createViewUrlExpression;
+	public $createViewUrlExpression = array('Emailer', 'createViewUrl');
 	/**
 	 * @var string the default character set.
 	 */
@@ -69,7 +61,7 @@ class Emailer extends CApplicationComponent {
 	/**
 	 * @var string the logging category.
 	 */
-	public $logCategory = 'ext.email.components.Emailer';
+	public $logCategory = 'vendor.nordsoftware.yii-emailer.components.Emailer';
 	/**
 	 * @var boolean whether the enable logging.
 	 */
@@ -87,22 +79,20 @@ class Emailer extends CApplicationComponent {
 	 */
 	public function init() {
 		parent::init();
-		if (!Yii::getPathOfAlias('email')) {
-			Yii::setPathOfAlias('email', __DIR__ . '/..');
-		}
+		Yii::setPathOfAlias('emailer', __DIR__ . '/..');
+		Yii::import('emailer.models.EmailMessage', true/* force include */);
 	}
 
 	/**
 	 * Creates an email message from a template.
-	 *
-	 * @throws CException If required configuration parameters are missing.
 	 * @param string $name the template name.
 	 * @param array $config the email configuration.
 	 * @return EmailMessage the model.
+ 	 * @throws CException if required configuration parameters are missing.
 	 */
 	public function createFromTemplate($name, $config = array()) {
 		if (!isset($this->templates[$name])) {
-			throw new CException('Template `' . $name . '` not found.');
+			throw new CException('Email template `' . $name . '` not found.');
 		}
 
 		$config = CMap::mergeArray($this->templates[$name], $config);
@@ -113,47 +103,11 @@ class Emailer extends CApplicationComponent {
 		if (!isset($config['to'])) {
 			throw new CException('Configuration must contain a `to` property.');
 		}
-
-		$layout = isset($config['layout']) ? $config['layout'] : $this->defaultLayout;
-		$data = array_merge(isset($config['data']) ? $config['data'] : array(), $this->data);
-
-		// Handle the subject.
-		if (isset($config['subject'])) {
-			$params = array();
-			foreach ($data as $key => $value) {
-				$params['{' . $key . '}'] = $value;
-			}
-			$subject = Yii::t('email', $config['subject'], $params);
-		} else {
+		if (!isset($config['subject'])) {
 			throw new CException('Configuration must contain a `subject` property.');
 		}
-		// Handle the body/view.
-		if (isset($config['body'])) {
-			$body = $config['body'];
-		} else if (isset($config['view'])) {
-			$view = $config['view'];
 
-			$controller = isset(Yii::app()->controller)
-				? Yii::app()->controller
-				: new $this->controller('email')/* for console */;
-			$view = strpos('.', $view) === false
-				? $this->viewPath . '.' . $view
-				: $view;
-
-			if ($layout !== false) {
-				$tmp = $controller->layout;
-				$controller->layout = $layout;
-				$controller->pageTitle = $subject;
-				$body = $controller->render($view, $data, true);
-				$controller->layout = $tmp;
-			} else {
-				$body = $controller->renderPartial($view, $data, true);
-			}
-		} else {
-			throw new CException('Configuration must contain a `body` or a `view` property.');
-		}
-
-		return $this->create($config['from'], $config['to'], $subject, $body, $config);
+		return $this->create($config['from'], $config['to'], $config['subject'], $config);
 	}
 
 	/**
@@ -161,31 +115,39 @@ class Emailer extends CApplicationComponent {
 	 * @param mixed $from the sender email address(es).
 	 * @param mixed $to the recipient email address(es).
 	 * @param string $subject the subject text.
-	 * @param string $body the body text.
 	 * @param array $config the email configuration.
 	 * @return EmailMessage the model.
+	 * @throws CException if required configuration parameters are missing.
 	 */
-	public function create($from, $to, $subject, $body, $config = array()) {
-		$message = Swift_Message::newInstance();
-
-		// Determine content type and character set.
-		$contentType = isset($config['contentType']) ? $config['contentType'] : self::CONTENT_HTML;
-		$charset = isset($config['charset']) ? $config['charset'] : $this->charset;
-
-		$message->setFrom($from)
-			->setTo($to)
-			->setSubject($subject)
-			->setBody($body, $contentType, $charset);
-
-		// Set cc and bcc if applicable.
-		if (isset($config['cc'])) {
-			$message->setCc($config['cc']);
+	public function create($from, $to, $subject, $config = array()) {
+		if (isset($config['body'])) {
+			$body = $config['body'];
+		} else if (isset($config['view'])) {
+			$view = $config['view'];
+			$controller = Yii::app()->getController();
+			if ($controller === null) {
+				$controller = new CController('email')/* for console */;
+			}
+			if (strpos('.', $view) === false) {
+				$view = $this->viewPath . '.' . $view;
+			}
+			$layout = isset($config['layout']) ? $config['layout'] : $this->defaultLayout;
+			$data = array_merge(isset($config['data']) ? $config['data'] : array(), $this->data);
+			if ($layout !== false) {
+				$l = $controller->layout;
+				$controller->layout = $layout;
+				$controller->pageTitle = $subject;
+				$body = $controller->render($view, $data, true);
+				$controller->layout = $l;
+			} else {
+				$body = $controller->renderPartial($view, $data, true);
+			}
+		} else {
+			throw new CException('Configuration must contain either a `body` or a `view` property.');
 		}
-		if (isset($config['bcc'])) {
-			$message->setBcc($config['bcc']);
-		}
+		unset($config['body'], $config['view']);
 
-		return $this->createMessage($message, $contentType, $charset);
+		return $this->createMessage($from, $to, $subject, $body, $config);
 	}
 
 	/**
@@ -206,26 +168,59 @@ class Emailer extends CApplicationComponent {
 		return $recipientCount;
 	}
 
+	public function createViewUrl($model) {
+		return Yii::app()->createUrl('/email/view', array('id' => $model->id));
+	}
+
 	/**
 	 * Logs the given email using Yii::log().
 	 * @param string $message the message to log.
-	 * @param int|string $level the log level.
+	 * @param string $level the log level.
 	 */
 	protected function log($message, $level = CLogger::LEVEL_INFO) {
 		Yii::log($message, $level, $this->logCategory);
 	}
 
 	/**
-	 * Create the EmailMessage model from the Swift_Message instance and save it to the database.
-	 *
+	 * Creates an email message.
+	 * @param mixed $from the sender email address(es).
+	 * @param mixed $to the recipient email address(es).
+	 * @param string $subject the subject text.
+	 * @param string $body the body text.
+	 * @param array $config the email configuration.
+	 * @return EmailMessage the model.
+	 */
+	protected function createMessage($from, $to, $subject, $body, $config = array()) {
+		$message = Swift_Message::newInstance();
+
+		// Determine content type and character set.
+		$contentType = isset($config['contentType']) ? $config['contentType'] : self::CONTENT_HTML;
+		$charset = isset($config['charset']) ? $config['charset'] : $this->charset;
+
+		$message->setFrom($from)
+			->setTo($to)
+			->setSubject($subject)
+			->setBody($body, $contentType, $charset);
+
+		// Set cc and bcc if applicable.
+		if (isset($config['cc'])) {
+			$message->setCc($config['cc']);
+		}
+		if (isset($config['bcc'])) {
+			$message->setBcc($config['bcc']);
+		}
+
+		return $this->createModel($message, $contentType, $charset);
+	}
+
+	/**
+	 * Creates a model from the given Swift_Message instance and saves it.
 	 * @param Swift_Message $message
 	 * @param string $contentType
 	 * @param string $charset
-	 * @return EmailMessage
+	 * @return EmailMessage the model.
 	 */
-	protected function createMessage(Swift_Message $message, $contentType, $charset) {
-		// Create the EmailMessage model to save in database
-		Yii::import('email.models.EmailMessage');
+	protected function createModel(Swift_Message $message, $contentType, $charset) {
 		$model = new EmailMessage;
 		$model->from = implode(', ', array_keys($message->getFrom()));
 		$model->to = implode(', ', array_keys($message->getTo()));
@@ -239,11 +234,11 @@ class Emailer extends CApplicationComponent {
 		}
 		$model->subject = $message->getSubject();
 		$model->body = $message->getBody();
-		$model->headers = implode('', $message->getHeaders()->getAll());
+		$model->headers = implode("\n", $message->getHeaders()->getAll());
 		$model->contentType = $contentType;
 		$model->charset = $charset;
 		$model->save(false); // need to save the model to get its id.
-		$viewUrl = $this->evaluateExpression($this->createViewUrlExpression, array('id'=>$model->id));
+		$viewUrl = $this->evaluateExpression($this->createViewUrlExpression, array('model'=>$model));
 		$model->body = str_replace('{viewUrl}', $viewUrl, $model->body);
 		$model->save(false);
 		return $model;
