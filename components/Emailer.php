@@ -55,6 +55,10 @@ class Emailer extends CApplicationComponent {
 	 */
 	public $charset = 'utf8';
 	/**
+	 * @var string the controller class to use when sending emails from the c
+	 */
+	public $controller = 'CController';
+	/**
 	 * @var string the logging category.
 	 */
 	public $logCategory = 'vendor.nordsoftware.yii-emailer.components.Emailer';
@@ -124,19 +128,21 @@ class Emailer extends CApplicationComponent {
 	 * @throws CException if required configuration parameters are missing.
 	 */
 	public function create($from, $to, $subject, $config = array()) {
+		$data = array_merge(isset($config['data']) ? $config['data'] : array(), $this->data);
+		$subject = strtr($subject, $data);
 		if (isset($config['body'])) {
 			$body = $config['body'];
 		} else if (isset($config['view'])) {
 			$view = $config['view'];
 			$controller = Yii::app()->getController();
 			if ($controller === null) {
-				$controller = new CController('email')/* for console */;
+				// todo: include a console controller in this extension.
+				$controller = new $this->controller('email')/* for console */;
 			}
 			if (strpos('.', $view) === false) {
 				$view = $this->viewPath . '.' . $view;
 			}
 			$layout = isset($config['layout']) ? $config['layout'] : $this->defaultLayout;
-			$data = array_merge(isset($config['data']) ? $config['data'] : array(), $this->data);
 			if ($layout !== false) {
 				$l = $controller->layout;
 				$controller->layout = $layout;
