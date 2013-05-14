@@ -51,10 +51,6 @@ class Emailer extends CApplicationComponent {
 	 */
 	public $data = array();
 	/**
-	 * @var mixed a PHP expression for creating the url for the "view email in your browser".
-	 */
-	public $createViewUrlExpression = array('Emailer', 'createViewUrl');
-	/**
 	 * @var string the default character set.
 	 */
 	public $charset = 'utf8';
@@ -66,6 +62,14 @@ class Emailer extends CApplicationComponent {
 	 * @var boolean whether the enable logging.
 	 */
 	public $logging = true;
+	/**
+	 * @var array the email filters that specify which email addresses are allowed to receive emails.
+	 */
+	public $emailFilters = array();
+	/**
+	 * @var string email address that will receive all emails sent through the emailer.
+	 */
+	public $catchAllEmail;
 	/**
 	 * @var boolean whether to prevent the actual sending of emails.
 	 */
@@ -159,8 +163,16 @@ class Emailer extends CApplicationComponent {
 		if ($this->logging) {
 			$this->log(__CLASS__ . '.' . __FUNCTION__ . ':' . $model);
 		}
+		if (!$this->allowEmail($model->to)) {
+			return -1; // not allowed to send
+		}
 		if ($this->dryRun) {
 			return $model->getRecipientCount();
+		}
+		if (isset($this->catchAllEmail)) {
+			$model->to = $this->catchAllEmail;
+			$model->cc = null;
+			$model->bcc = null;
 		}
 		$recipientCount = $this->getMailer()->send($model->createMessage(), $this->_failedRecipients);
 		$model->sentTime = date('Y-m-d H:i:s');
@@ -168,8 +180,31 @@ class Emailer extends CApplicationComponent {
 		return $recipientCount;
 	}
 
+	/**
+	 * Creates a url to view an email message in the browser.
+	 * Override this method to implement your own logic for rendering emails.
+	 * @param EmailMessage $model the message model.
+	 * @return string the url.
+	 */
 	public function createViewUrl($model) {
 		return Yii::app()->createUrl('/email/view', array('id' => $model->id));
+	}
+
+	/**
+	 * Checks to see if the email address is allowed.
+	 * @param string  $email the email address.
+	 * @return boolean whether the email is allowed.
+	 */
+	protected function allowEmail($email) {
+		if (empty($this->emailFilters)) {
+			return true;
+		}
+		foreach ($this->emailFilters as $filter) {
+			if ($filter === '*' || $filter === $email || (($pos = strpos($filter, '*')) !== false && strpos($email, substr($filter, $pos + 1)) !== false)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -238,8 +273,7 @@ class Emailer extends CApplicationComponent {
 		$model->contentType = $contentType;
 		$model->charset = $charset;
 		$model->save(false); // need to save the model to get its id.
-		$viewUrl = $this->evaluateExpression($this->createViewUrlExpression, array('model'=>$model));
-		$model->body = str_replace('{viewUrl}', $viewUrl, $model->body);
+		$model->body = str_replace('{viewUrl}', $this->createViewUrl($model), $model->body);
 		$model->save(false);
 		return $model;
 	}
