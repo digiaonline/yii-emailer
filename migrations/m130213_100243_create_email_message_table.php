@@ -15,6 +15,7 @@ class m130213_100243_create_email_message_table extends CDbMigration {
 			`charset` VARCHAR(255) NOT NULL,
 			`created` DATETIME NOT NULL,
 			`status` INT NOT NULL DEFAULT '0',
+            `sentTime` DATETIME NULL,
 			PRIMARY KEY (`id`)
 		) COLLATE='utf8_general_ci' ENGINE=InnoDB;");
 	}
