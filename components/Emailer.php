@@ -51,10 +51,6 @@ class Emailer extends CApplicationComponent {
 	 */
 	public $data = array();
 	/**
-	 * @var mixed a PHP expression for creating the url for the "view email in your browser".
-	 */
-	public $createViewUrlExpression = array('Emailer', 'createViewUrl');
-	/**
 	 * @var string the default character set.
 	 */
 	public $charset = 'utf8';
@@ -168,6 +164,12 @@ class Emailer extends CApplicationComponent {
 		return $recipientCount;
 	}
 
+	/**
+	 * Creates the url to view the given model.
+	 * Override this method to implement custom rendering of emails in the browser.
+	 * @param EmailMessage $model the model.
+	 * @return string the url.
+	 */
 	public function createViewUrl($model) {
 		return Yii::app()->createUrl('/email/view', array('id' => $model->id));
 	}
@@ -238,8 +240,7 @@ class Emailer extends CApplicationComponent {
 		$model->contentType = $contentType;
 		$model->charset = $charset;
 		$model->save(false); // need to save the model to get its id.
-		$viewUrl = $this->evaluateExpression($this->createViewUrlExpression, array('model'=>$model));
-		$model->body = str_replace('{viewUrl}', $viewUrl, $model->body);
+		$model->body = str_replace('{viewUrl}', $this->createViewUrl($model), $model->body);
 		$model->save(false);
 		return $model;
 	}
