@@ -35,7 +35,7 @@ class EmailController extends CController {
 	protected function loadModel($id) {
 		$model = EmailMessage::model()->findByPk($id);
 		if ($model === null) {
-			throw new CHttpException(404, t('email', 'Page not found.'));
+			throw new CHttpException(404, Yii::t('email', 'Page not found.'));
 		}
 		return $model;
 	}
