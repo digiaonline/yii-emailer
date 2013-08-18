@@ -55,6 +55,10 @@ class Emailer extends CApplicationComponent {
 	 */
 	public $charset = 'utf8';
 	/**
+	 * @var string the controller class to use when sending emails from the c
+	 */
+	public $controller = 'CController';
+	/**
 	 * @var string the logging category.
 	 */
 	public $logCategory = 'vendor.nordsoftware.yii-emailer.components.Emailer';
@@ -62,6 +66,14 @@ class Emailer extends CApplicationComponent {
 	 * @var boolean whether the enable logging.
 	 */
 	public $logging = true;
+	/**
+	 * @var array the email filters that specify which email addresses are allowed to receive emails.
+	 */
+	public $emailFilters = array();
+	/**
+	 * @var string email address that will receive all emails sent through the emailer.
+	 */
+	public $catchAllEmail;
 	/**
 	 * @var boolean whether to prevent the actual sending of emails.
 	 */
@@ -116,19 +128,20 @@ class Emailer extends CApplicationComponent {
 	 * @throws CException if required configuration parameters are missing.
 	 */
 	public function create($from, $to, $subject, $config = array()) {
+		$data = array_merge(isset($config['data']) ? $config['data'] : array(), $this->data);
 		if (isset($config['body'])) {
 			$body = $config['body'];
 		} else if (isset($config['view'])) {
 			$view = $config['view'];
 			$controller = Yii::app()->getController();
 			if ($controller === null) {
-				$controller = new CController('email')/* for console */;
+				// todo: include a console controller in this extension.
+				$controller = new $this->controller('email')/* for console */;
 			}
 			if (strpos('.', $view) === false) {
 				$view = $this->viewPath . '.' . $view;
 			}
 			$layout = isset($config['layout']) ? $config['layout'] : $this->defaultLayout;
-			$data = array_merge(isset($config['data']) ? $config['data'] : array(), $this->data);
 			if ($layout !== false) {
 				$l = $controller->layout;
 				$controller->layout = $layout;
@@ -155,8 +168,16 @@ class Emailer extends CApplicationComponent {
 		if ($this->logging) {
 			$this->log(__CLASS__ . '.' . __FUNCTION__ . ':' . $model);
 		}
+		if (!$this->allowEmail($model->to)) {
+			return -1; // not allowed to send
+		}
 		if ($this->dryRun) {
 			return $model->getRecipientCount();
+		}
+		if (isset($this->catchAllEmail)) {
+			$model->to = $this->catchAllEmail;
+			$model->cc = null;
+			$model->bcc = null;
 		}
 		$recipientCount = $this->getMailer()->send($model->createMessage(), $this->_failedRecipients);
 		$model->sentTime = date('Y-m-d H:i:s');
@@ -172,6 +193,23 @@ class Emailer extends CApplicationComponent {
 	 */
 	public function createViewUrl($model) {
 		return Yii::app()->createUrl('/email/view', array('id' => $model->id));
+	}
+
+	/**
+	 * Checks to see if the email address is allowed.
+	 * @param string  $email the email address.
+	 * @return boolean whether the email is allowed.
+	 */
+	protected function allowEmail($email) {
+		if (empty($this->emailFilters)) {
+			return true;
+		}
+		foreach ($this->emailFilters as $filter) {
+			if ($filter === '*' || $filter === $email || (($pos = strpos($filter, '*')) !== false && strpos($email, substr($filter, $pos + 1)) !== false)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

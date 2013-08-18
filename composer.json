@@ -3,7 +3,8 @@
 	"description": "Extension for creating and sending emails for the Yii PHP framework.",
     "require": {
 		"nordsoftware/yii-utils": "dev-master",
-        "swiftmailer/swiftmailer": "4.3.0"
+        "swiftmailer/swiftmailer": "4.3.0",
+        "crisu83/yii-formatter": "dev-master"
     },
     "license": "BSD-3-Clause",
     "authors": [

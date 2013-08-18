@@ -33,6 +33,10 @@ require_once(__DIR__ . '/../../../swiftmailer/swiftmailer/lib/swift_init.php');
  * @property integer $status
  */
 class EmailMessage extends NSActiveRecord {
+	/**
+	 * @var Swift_Message the swift message.
+	 */
+	private $_message;
 
 	/**
 	 * Returns the static model of the specified AR class.
@@ -114,8 +118,8 @@ class EmailMessage extends NSActiveRecord {
 	 * @return integer the count.
 	 */
 	public function getRecipientCount() {
-		$message = $this->createMessage();
-		return isset($message) ? count($message->getTo()) : -1;
+		$message = $this->getMessage();
+		return $message instanceof Swift_Message ? count($message->getTo()) : -1;
 	}
 
 	/**
@@ -142,11 +146,23 @@ class EmailMessage extends NSActiveRecord {
 	}
 
 	/**
+	 * Returns the swift message instance.
+	 * @return Swift_Message the instance.
+	 */
+	public function getMessage() {
+		if (isset($this->_message)) {
+			return $this->_message;
+		} else {
+			return $this->_message = $this->createMessage();
+		}
+	}
+
+	/**
 	 * Converts this model to a string.
 	 * @return string the text.
 	 */
 	public function __toString() {
-		$message = $this->createMessage();
+		$message = $this->getMessage();
 		$from = implode(', ', array_keys($message->getFrom()));
 		$to = implode(', ', array_keys($message->getTo()));
 		$headers = implode('', $message->getHeaders()->getAll());
