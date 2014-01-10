@@ -157,6 +157,28 @@ class EmailMessage extends NSActiveRecord {
 		}
 	}
 
+    /**
+     * Sets the Swift_Message instance.
+     * @param Swift_Message $message
+     */
+    public function setMessage(Swift_Message $message) {
+        $this->_message = $message;
+    }
+
+    /**
+     * Add an attachment to the email message.
+     * @param string $path
+     *
+     * @return Swift_Mime_SimpleMessage
+     * @throws CException
+     */
+    public function addAttachment($path) {
+        if (!file_exists($path)) {
+            throw new CException(sprintf('File not found in path "%s".', $path));
+        }
+        return $this->getMessage()->attach(Swift_Attachment::fromPath($path));
+    }
+
 	/**
 	 * Converts this model to a string.
 	 * @return string the text.

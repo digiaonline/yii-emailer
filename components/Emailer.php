@@ -179,7 +179,7 @@ class Emailer extends CApplicationComponent {
 			$model->cc = null;
 			$model->bcc = null;
 		}
-		$recipientCount = $this->getMailer()->send($model->createMessage(), $this->_failedRecipients);
+		$recipientCount = $this->getMailer()->send($model->getMessage(), $this->_failedRecipients);
 		$model->sentTime = date('Y-m-d H:i:s');
 		$model->save(false);
 		return $recipientCount;
@@ -192,7 +192,7 @@ class Emailer extends CApplicationComponent {
 	 * @return string the url.
 	 */
 	public function createViewUrl($model) {
-		return Yii::app()->createUrl('/email/view', array('id' => $model->id));
+		return Yii::app()->createAbsoluteUrl('/email/view', array('id' => $model->id));
 	}
 
 	/**
@@ -262,6 +262,7 @@ class Emailer extends CApplicationComponent {
 	 */
 	protected function createModel(Swift_Message $message, $contentType, $charset) {
 		$model = new EmailMessage;
+        $model->setMessage($message);
 		$model->from = implode(', ', array_keys($message->getFrom()));
 		$model->to = implode(', ', array_keys($message->getTo()));
 		$cc = $message->getCc();
