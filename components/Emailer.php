@@ -182,12 +182,15 @@ class Emailer extends CApplicationComponent
         if ($this->dryRun) {
             return $model->getRecipientCount();
         }
+        // Get the Swift_Message
+        $message = $model->getMessage();
         if (isset($this->catchAllEmail)) {
+            $message->setTo($this->catchAllEmail);
             $model->to = $this->catchAllEmail;
             $model->cc = null;
             $model->bcc = null;
         }
-        $recipientCount = $this->getMailer()->send($model->getMessage(), $this->_failedRecipients);
+        $recipientCount = $this->getMailer()->send($message, $this->_failedRecipients);
         $model->sentTime = date('Y-m-d H:i:s');
         $model->save(false);
         return $recipientCount;
