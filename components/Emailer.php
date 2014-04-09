@@ -187,8 +187,22 @@ class Emailer extends CApplicationComponent
         if (isset($this->catchAllEmail)) {
             $message->setTo($this->catchAllEmail);
             $model->to = $this->catchAllEmail;
-            $model->cc = null;
-            $model->bcc = null;
+
+            $cc = $message->getCc();
+            if (!empty($cc)) {
+                $message->setCc($this->catchAllEmail);
+                $model->cc = $this->catchAllEmail;
+            } else {
+                $model->cc = null;
+            }
+
+            $bcc = $message->getBcc();
+            if (!empty($bcc)) {
+                $message->setBcc($this->catchAllEmail);
+                $model->bcc = $this->catchAllEmail;
+            } else {
+                $model->bcc = null;
+            }
         }
         $recipientCount = $this->getMailer()->send($message, $this->_failedRecipients);
         $model->sentTime = date('Y-m-d H:i:s');
