@@ -138,11 +138,35 @@ class EmailMessage extends NSActiveRecord
         /** @var Swift_Message $message */
         $message = Swift_Message::newInstance();
         $from = $this->from;
-        $to = $this->to;
+
+        // If the email is sent to multiple addresses, explode them into an array
+        if (strpos($this->to, ',') !== false) {
+            $to = array_map('trim', explode(',', trim($this->to)));
+        } else {
+            $to = $this->to;
+        }
+        if (strpos($this->cc, ',') !== false) {
+            $cc = array_map('trim', explode(',', trim($this->cc)));
+        } else {
+            $cc = $this->cc;
+        }
+        if (strpos($this->bcc, ',') !== false) {
+            $bcc = array_map('trim', explode(',', trim($this->bcc)));
+        } else {
+            $bcc = $this->bcc;
+        }
+
         $subject = $this->subject;
         $body = $this->body;
         $contentType = $this->contentType;
         $charset = $this->charset;
+
+        if ($cc !== null) {
+            $message->setCc($cc);
+        }
+        if ($bcc !== null) {
+            $message->setBcc($bcc);
+        }
 
         // Set variables to message
         $message->setFrom($from)
