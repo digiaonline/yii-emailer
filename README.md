@@ -7,10 +7,11 @@ Extension for creating and sending emails for the Yii PHP framework.
 Usage
 ===========
 
-- Migrate the emai_message db table by this command:
+- Migrate the email_message database table by this command:
  
  ```yiic migrate --migrationPath=vendor.nordsoftware.yii-emailer.migrations```
-- Attach the EmailBehavior to your controller or to any component that you want to use this extention on it:
+
+- Attach the `EmailBehavior` to your controller or to any component that you want to use this extention on it:
 ```
 public function behaviors()
     {
@@ -21,7 +22,8 @@ public function behaviors()
         ));
     }
 ```
-- add Emailer component to your app config:
+
+- Add `Emailer` component to your app config:
 ```
 return array(
 'components' => array(
@@ -30,17 +32,19 @@ return array(
         )
     ));
 ```
+
 - Now you can send the message by calling:
 ```
 $email = $this->createEmail($from, $to, $subject, $body, array('body'=>$message));
 $this->sendEmail($email);
 ```
-- To use templates you need to define them in your app config.
+
+- To use templates you need to define them in your app config:
 ```
     'templates'=>array(
       'foo'=>array(
        'subject'=>'Foo',
-       'view'=>'foo', // refers to a view in views/emailب
+       'view'=>'foo', // refers to a view in views/email
       ),
     ),
 ```
