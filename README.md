@@ -32,7 +32,7 @@ return array(
 ```
 - Now you can send the message by calling:
 ```
-$email = $this->createEmail($from, $to, $subject, $body, $config);
+$email = $this->createEmail($from, $to, $subject, $body, array('body'=>$message));
 $this->sendEmail($email);
 ```
 - To use templates you need to define them in your app config.
