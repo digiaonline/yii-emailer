@@ -144,7 +144,7 @@ class Emailer extends CApplicationComponent
                     $controller = new $this->controller('email') /* for console */
                     ;
                 }
-                if (strpos('.', $view) === false) {
+                if (strpos($view, '.') === false) {
                     $view = $this->viewPath . '.' . $view;
                 }
                 $layout = isset($config['layout']) ? $config['layout'] : $this->defaultLayout;
